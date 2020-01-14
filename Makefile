@@ -221,9 +221,20 @@ build/lib/libluajit-5.1.a: build/$(LUAJIT_TAR)
 release/include/terra/%.h:  $(LUAJIT_INCLUDE)/%.h $(LUAJIT_LIB) 
 	cp $(LUAJIT_INCLUDE)/$*.h $@
     
-build/llvm_objects/llvm_list:    $(addprefix build/, $(LIBOBJS) $(EXEOBJS))
+build/llvm_objects/libs_list:    $(addprefix build/, $(LIBOBJS) $(EXEOBJS))
+	mkdir -p build/llvm_objects
+	$(CXX) -o /dev/null $(addprefix build/, $(LIBOBJS) $(EXEOBJS)) $(LLVM_LIBRARY_FLAGS) $(SUPPORT_LIBRARY_FLAGS) $(LFLAGS) -Wl,-t 2>&1
+	#
+	#
+	# Copy the filepaths listed above to build/llvm_objects/libs_list
+	#
+	#
+	touch build/llvm_objects/libs_list
+	exit -1
+
+build/llvm_objects/llvm_list: build/llvm_objects/libs_list
 	mkdir -p build/llvm_objects/luajit
-	$(CXX) -o /dev/null $(addprefix build/, $(LIBOBJS) $(EXEOBJS)) $(LLVM_LIBRARY_FLAGS) $(SUPPORT_LIBRARY_FLAGS) $(LFLAGS) -Wl,-t 2>&1 | egrep "lib(LLVM|clang)"  > build/llvm_objects/llvm_list
+	cat build/llvm_objects/libs_list | egrep "lib(LLVM|clang)"  > build/llvm_objects/llvm_list
 	# extract needed LLVM objects based on a dummy linker invocation
 	< build/llvm_objects/llvm_list $(LUAJIT) src/unpacklibraries.lua build/llvm_objects
 	# include all luajit objects, since the entire lua interface is used in terra 
